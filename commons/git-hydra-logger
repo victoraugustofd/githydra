@@ -1,0 +1,33 @@
+
+# Loading source files
+. bash-commons
+
+info() {
+    log ${BLUE} "INFO" "$@"
+}
+
+debug() {
+    log ${GREEN} "DEBUG" "$@"
+}
+
+warn() {
+    log ${YELLOW} "WARNING" "$@"
+}
+
+error() {
+    log ${LIGHT_RED} "ERROR" "$@"
+    exit 1
+}
+
+fatal() {
+    log ${RED} "FATAL" "$@"
+    exit 1
+}
+
+log() {
+    color=$1; shift
+    level=$1; shift
+    message=$1; shift
+
+    echo -en "${color}$level:$NC $message"
+}

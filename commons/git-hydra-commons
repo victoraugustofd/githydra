@@ -1,0 +1,176 @@
+
+# Loading source file
+. git-commons
+. git-hydra-logger
+
+CONFIG_PREFIX="githydra"
+
+hydra_header() {
+    echo -e ${GREEN}
+    echo " _  _         _"
+    echo "| || |_  _ __| |_ _ __ _"
+    echo "| __ | || / _\` | '_/ _\` |"
+    echo "|_||_|\_, \__,_|_| \__,_|"
+    echo -e "      |__/"
+    echo -e $NC
+}
+
+hydra_command_set() {
+    echo "bug|config|destroy|feature|fix|init|reinit|release"
+}
+
+hydra_bug_command_set() {
+    echo "finish|start"
+}
+
+hydra_feature_command_set() {
+    echo "finish|start"
+}
+
+hydra_fix_command_set() {
+    echo "finish|start"
+}
+
+hydra_release_command_set() {
+    echo "finish"
+}
+
+clean_command_list() {
+    command_list=$1
+    echo "$(replace $command_list "|" " ")"
+}
+
+clean_regex() {
+    regex=$1
+
+    clean_text=$(replace $regex "|" " ")
+    clean_text=$(replace $clean_text "\(" "")
+    clean_text=$(replace $clean_text "\)" "")
+    clean_text=$(replace $clean_text "\\b" "")
+
+    echo $clean_text
+}
+
+insert_regex() {
+    command_list=$1
+
+    echo "\b($command_list)\b"
+}
+
+require_git_repo () {
+	test "$(git_do "rev-parse --is-inside-work-tree" 2>/dev/null)" = true || {
+		fatal "git hydra cannot be used without a git repository."
+	}
+}
+
+require_hydra_initialized() {
+    test "$(is_hydra_initialized)" = true || {
+		error "git hydra is not initialized. Please, run ${GREEN}git hydra init$NC to initialize it."
+	}
+}
+
+is_hydra_initialized() {
+    retrieve_hydra_config "initialized"
+}
+
+set_hydra_config() {
+    key=$1; shift
+    value=$1
+
+    git_do "config $CONFIG_PREFIX.config.$key $value"
+}
+
+retrieve_hydra_config() {
+    config=$1
+    echo $(git_do config --get $CONFIG_PREFIX.config.$config)
+}
+
+retrieve_feature_prefix() {
+    retrieve_prefix "feature"
+}
+
+retrieve_bug_prefix() {
+    retrieve_prefix "bug"
+}
+
+retrieve_fix_prefix() {
+    retrieve_prefix "fix"
+}
+
+retrieve_prefix() {
+    prefix=$1
+
+    echo $(git_do config --get $CONFIG_PREFIX.prefix.$prefix)
+}
+
+check_working_tree() {
+    require_git_repo
+    require_hydra_initialized
+}
+
+is_tutorial() {
+    has_no_parameters $@ || is_command_tutorial $@
+}
+
+is_command_tutorial() {
+    [[ $1 = "-help" ||
+       $1 = "?"     ||
+       $1 = "man" ]]
+}
+
+invalid_command() {
+    error "Invalid command!"
+}
+
+invalid_parameters() {
+    error "Invalid parameters!"
+}
+
+retrieve_production_branch() {
+    retrieve_branch "production"
+}
+
+retrieve_release_branch() {
+    retrieve_branch "release"
+}
+
+retrieve_development_branches() {
+    git config --get-regexp githydra.branch.develop* | cut -d ' ' -f 2
+}
+
+retrieve_branch() {
+    git_do "config githydra.branch.$1"
+}
+
+branch_start() {
+    local prefix=$1; shift
+    local branch_name=$1; shift
+    local origin_branch=$1
+
+    info "Starting a $prefix branch named $branch_name, based on $origin_branch\n"
+    git checkout -b $prefix/$branch_name $origin_branch
+}
+
+branch_finish() {
+    local prefix=$1; shift
+    local branch_name=$1; shift
+    local branches_to_merge=$@
+
+    info "Finishing a $prefix branch named $branch_name, it will be merged into $branches_to_merge\n"
+    git_do "checkout $prefix/$branch_name"
+    git_do "merge $branches_to_merge"
+    git_do "checkout $branches_to_merge"
+}
+
+is_development_branch() {
+    local branch_name=$1
+    local development_branches=$(retrieve_development_branches)
+
+    for branch in $development_branches; do
+        if [ "$branch_name" == "$branch" ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
