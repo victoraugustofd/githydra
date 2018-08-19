@@ -1,38 +1,32 @@
 #!/bin/sh
 
 # Loading Hydra commons script
+. git-hydra-rules
 . git-hydra-commons
 
 usage() {
     echo
-    echo "usage: git hydra <command>"
-    echo "Following are the valid commands:"
-    echo "    init:       Configure your Git repository to work with Hydra Branching."
-    echo "    destroy:    Unconfigure your previous configured Hydra repository."
-    echo "    reinit:     Basically, execute the command \"destroy\", followed by \"init\"."
-    echo "    feature:    Manage your feature branches."
-    echo "    release:    Manage your release branch."
-    echo "    bug:        Manage your bug branches."
-    echo "    fix:        Manage your fix branches."
-    echo "    config:     Use it to customize your Hydra repository."
-}
-
-hydra_file_prefix() {
-    echo "git-hydra-"
 }
 
 main() {
     if is_tutorial $@; then
         usage
     else
-        command=$1; shift
+        require_git_repo
+        require_hydra_template
 
-        if [[ $command =~ $(hydra_command_set) ]]; then
-            . $(hydra_file_prefix)$command
-            main $@
-        else
-            invalid_command
-        fi
+        local parameters=$@
+        local command=$1; shift
+        local action=$1; shift
+        cp /d/scm/git/github/victoraugustofd/githydra/templates/hydra.json .
+        template=$(read_template "hydra.json")
+
+        rm hydra.json
+
+        validate_command $command
+        validate_action $command $action
+
+        fire_rules $parameters
     fi
 }
 

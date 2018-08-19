@@ -1,58 +1,13 @@
 
-# Loading Hydra commons script
-. git-hydra-commons
+# Loading Hydra rules script
+. git-hydra-rules
 
 _git_hydra() {
-    case "$prev" in
-        bug)
-            __gitcomp "$(clean_command_list $(hydra_bug_command_set))"
-            return
-            ;;
-        feature)
-            __gitcomp "$(clean_command_list $(hydra_feature_command_set))"
-            return
-            ;;
-        fix)
-            __gitcomp "$(clean_command_list $(hydra_fix_command_set))"
-            return
-            ;;
-        release)
-            __gitcomp "$(clean_command_list $(hydra_release_command_set))"
-            return
-            ;;
-        init|destroy|reinit|start)
-            return
-            ;;
-        finish)
-            branch_type="${COMP_WORDS[COMP_CWORD-2]}"
-
-            if [ $branch_type != "release" ]; then
-                partial_name="$cur"
-                result=`git ls-remote --heads origin $branch_type* | sed -e s?.*refs/heads/$branch_type/??`
-
-                if [ -n "$result" ]; then
-                    if [ -n "$partial_name" ]; then
-                        result=`echo $result | grep -i $partial_name*`
-                    fi
-
-                    __gitcomp "$result"
-                else
-                    hydra_header
-                    echo -e ${LIGHT_BLUE}
-                    echo -e "None ${LIGHT_RED}$branch_type ${LIGHT_BLUE}branch was found!"$NC
-                fi
-            fi
-
-            return
-            ;;
-        config) #todo
-            if [ "$cur" = "--" ]; then
-                __gitcomp "initialized list"
-            fi
-
-            return
+    case $prev in
+        hydra)
+            __gitcomp "$(retrieve_commands /d/desktop/hydra.json)"
             ;;
         *)
-            __gitcomp "$(clean_command_list $(hydra_command_set))"
+            __gitcomp "$(retrieve_actions $prev /d/desktop/hydra.json)"
     esac
 }

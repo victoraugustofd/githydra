@@ -5,107 +5,110 @@
 
 CONFIG_PREFIX="githydra"
 
-hydra_header() {
-    echo -e ${GREEN}
-    echo " _  _         _"
-    echo "| || |_  _ __| |_ _ __ _"
-    echo "| __ | || / _\` | '_/ _\` |"
-    echo "|_||_|\_, \__,_|_| \__,_|"
-    echo -e "      |__/"
-    echo -e $NC
+retrieve_hydra_template() {
+    retrieve_hydra_key "template.path"
 }
 
-hydra_command_set() {
-    echo "bug|config|destroy|feature|fix|init|reinit|release"
+retrieve_hydra_key() {
+    local key=$1
+    git_do config --get $CONFIG_PREFIX.$key
 }
 
-hydra_bug_command_set() {
-    echo "finish|start"
+require_hydra_template() {
+    if [ -z $(retrieve_hydra_template) ]; then
+        error "You must specify a template to use git hydra! Run ${GREEN}git hydra config template ${PURPLE}path_to_template$NC to configure it...\n"
+    fi
 }
 
-hydra_feature_command_set() {
-    echo "finish|start"
+retrieve_commands_as_map() {
+    jq -c '.commands' <<< $template
 }
 
-hydra_fix_command_set() {
-    echo "finish|start"
+retrieve_commands_as_json() {
+    local json=$(retrieve_commands_as_map)
+
+    jq -c '.[]' <<< $json
 }
 
-hydra_release_command_set() {
-    echo "finish"
+retrieve_commands() {
+    local json=$(retrieve_commands_as_map)
+
+    jq -c -r 'map(.name) | join(" ")' <<< $json
 }
 
-clean_command_list() {
-    command_list=$1
-    echo "$(replace $command_list "|" " ")"
+retrieve_command_actions_as_map() {
+    local command=$1
+    local json=$(retrieve_commands_as_json)
+
+    jq -c --arg COMMAND "$command" 'select(.name == $COMMAND) | .actions' <<< $json
 }
 
-clean_regex() {
-    regex=$1
+retrieve_command_actions_as_json() {
+    local command=$1
+    local json=$(retrieve_command_actions_as_map $command)
 
-    clean_text=$(replace $regex "|" " ")
-    clean_text=$(replace $clean_text "\(" "")
-    clean_text=$(replace $clean_text "\)" "")
-    clean_text=$(replace $clean_text "\\b" "")
-
-    echo $clean_text
+    jq -c '.[]' <<< $json
 }
 
-insert_regex() {
-    command_list=$1
+retrieve_command_action() {
+    local command=$1; shift
+    local action=$1
+    local json=$(retrieve_command_actions_as_json $command)
 
-    echo "\b($command_list)\b"
+    jq -c --arg ACTION "$action" 'select(.name == $ACTION)' <<< $json
 }
 
-require_git_repo () {
-	test "$(git_do "rev-parse --is-inside-work-tree" 2>/dev/null)" = true || {
-		fatal "git hydra cannot be used without a git repository."
-	}
+retrieve_action_execution() {
+    local command=$1; shift
+    local action=$1
+    local json=$(retrieve_command_action $command $action)
+
+    jq -c '.execution' <<< $json
 }
 
-require_hydra_initialized() {
-    test "$(is_hydra_initialized)" = true || {
-		error "git hydra is not initialized. Please, run ${GREEN}git hydra init$NC to initialize it."
-	}
+retrieve_action_execution_do() {
+    local command=$1; shift
+    local action=$1; shift
+    local sequence=$1
+    local json=$(retrieve_action_execution $command $action)
+
+    jq -c --arg SEQUENCE $sequence '.[] | select(.sequence = $SEQUENCE) | .do' <<< $json
 }
 
-is_hydra_initialized() {
-    retrieve_hydra_config "initialized"
+retrieve_action_execution_do_action() {
+    local do_json=$1
+
+    jq -r '.action' <<< $do_json
 }
 
-set_hydra_config() {
-    key=$1; shift
-    value=$1
+retrieve_command_actions() {
+    local command=$1
+    local json=$(retrieve_command_actions_as_map $command)
 
-    git_do "config $CONFIG_PREFIX.config.$key $value"
+    jq -c -r 'map(.name) | join(" ")' <<< $json
 }
 
-retrieve_hydra_config() {
-    config=$1
-    echo $(git_do config --get $CONFIG_PREFIX.config.$config)
+validate_command() {
+    local command=$1
+
+    if [[ $(retrieve_commands) != *"$command"* ]]; then
+        error "Invalid command!\n"
+    fi
 }
 
-retrieve_feature_prefix() {
-    retrieve_prefix "feature"
+validate_action() {
+    local command=$1; shift
+    local action=$1
+
+    if [[ $(retrieve_command_actions $command) != *"$action"* ]]; then
+        error "Invalid action!\n"
+    fi
 }
 
-retrieve_bug_prefix() {
-    retrieve_prefix "bug"
-}
+read_template() {
+    local template=$1
 
-retrieve_fix_prefix() {
-    retrieve_prefix "fix"
-}
-
-retrieve_prefix() {
-    prefix=$1
-
-    echo $(git_do config --get $CONFIG_PREFIX.prefix.$prefix)
-}
-
-check_working_tree() {
-    require_git_repo
-    require_hydra_initialized
+    jq -c . $template
 }
 
 is_tutorial() {
@@ -116,61 +119,4 @@ is_command_tutorial() {
     [[ $1 = "-help" ||
        $1 = "?"     ||
        $1 = "man" ]]
-}
-
-invalid_command() {
-    error "Invalid command!"
-}
-
-invalid_parameters() {
-    error "Invalid parameters!"
-}
-
-retrieve_production_branch() {
-    retrieve_branch "production"
-}
-
-retrieve_release_branch() {
-    retrieve_branch "release"
-}
-
-retrieve_development_branches() {
-    git config --get-regexp githydra.branch.develop* | cut -d ' ' -f 2
-}
-
-retrieve_branch() {
-    git_do "config githydra.branch.$1"
-}
-
-branch_start() {
-    local prefix=$1; shift
-    local branch_name=$1; shift
-    local origin_branch=$1
-
-    info "Starting a $prefix branch named $branch_name, based on $origin_branch\n"
-    git checkout -b $prefix/$branch_name $origin_branch
-}
-
-branch_finish() {
-    local prefix=$1; shift
-    local branch_name=$1; shift
-    local branches_to_merge=$@
-
-    info "Finishing a $prefix branch named $branch_name, it will be merged into $branches_to_merge\n"
-    git_do "checkout $prefix/$branch_name"
-    git_do "merge $branches_to_merge"
-    git_do "checkout $branches_to_merge"
-}
-
-is_development_branch() {
-    local branch_name=$1
-    local development_branches=$(retrieve_development_branches)
-
-    for branch in $development_branches; do
-        if [ "$branch_name" == "$branch" ]; then
-            return 0
-        fi
-    done
-
-    return 1
 }

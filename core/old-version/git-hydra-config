@@ -1,0 +1,21 @@
+
+# Loading Hydra commons script
+. git-hydra-commons
+
+config() {
+    git config githydra.config.$1 $2
+}
+
+list_hydra_config() {
+    printf "Production branch: $(retrieve_production_branch)\n"
+    printf "Release branch: $(retrieve_release_branch)\n"
+    printf "Development branches:\n$(retrieve_development_branches)\n"
+
+    hydra_config="$(git config --get-regexp githydra.config*)"
+    #hydra_config=$("$hydra_config" cut -d '.' -f 3)
+    hydra_config=$($(tr '[:lower:]' '[:upper:]' <<< ${hydra_config:0:1})${hydra_config:1})
+
+    printf "Hydra configurations:\n$hydra_config"
+
+    printf "To view these configurations, access file .git/config"
+}

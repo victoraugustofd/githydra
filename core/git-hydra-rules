@@ -1,0 +1,72 @@
+
+. jq-commons
+. git-hydra-commons
+
+fire_rules() {
+    command=$1; shift
+    action=$1; shift
+    parameters=$@
+    execution=$(retrieve_action_execution $command $action)
+    local numberOfExecutions=$(count_elements $execution)
+
+    for i in $(seq 1 $numberOfExecutions); do
+        local sequence=$i
+        local execution_do=$(retrieve_action_execution_do $command $action $sequence)
+        local execution_do_action=$(retrieve_action_execution_do_action $execution_do)
+
+        $execution_do_action $execution_do $parameters
+    done
+}
+
+create_branch() {
+    local execution_do=$1; shift
+    local name=$1; shift
+    local defined_origin=$1; shift
+    local pattern=$(jq -r '.pattern' <<< $execution_do)
+    local origin=$(jq -r '.origin' <<< $execution_do)
+
+    if [[ -n $pattern && ! $name =~ $pattern ]]; then
+        error "Invalid name! Please enter a valid branch name!\n"
+    else
+        local branch_name="$command/$name"
+        if [ $origin == "#user_definition" ]; then
+            defined_origin=$(user_definition "Inform the origin branch: ")
+        fi
+
+        info "Creating a $command branch (${PURPLE}$branch_name$NC), based on ${PURPLE}$defined_origin$NC"
+        git_do "checkout -b $branch_name $defined_origin"
+    fi
+}
+
+create_branches() {
+    echo
+}
+
+merge() {
+    echo
+}
+
+rebase() {
+    echo
+}
+
+tag() {
+    echo
+}
+
+block_commits() {
+    echo
+}
+
+check_branch_date() {
+    echo
+}
+
+user_definition() {
+    local message=$1
+
+    info "$message"
+    read entry
+
+    echo $entry
+}

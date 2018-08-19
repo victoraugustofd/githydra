@@ -1,0 +1,145 @@
+{
+	"init": {
+		"execution": [{
+				"sequence": 0,
+				"do": {
+					"action": "create_branches",
+					"origin": "master",
+					"branches": [
+						"master",
+						"release",
+						"e1",
+						"e2",
+						"e3"
+					]
+				}
+			}, {
+				"sequence": 1,
+				"do": {
+					"action": "block_commits"
+				}
+			}
+		]
+	},
+	"commands": [{
+			"name": "feature",
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "create_branch",
+                                "pattern": "^(PJ|PP)[0-9]+-[A-Z]+-[0-9]+",
+								"origin": "#user_definition"
+							}
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "merge",
+								"destination": [
+									"#user_definition"
+								]
+							}
+						}
+					]
+				}
+			]
+		}, {
+			"name": "release",
+			"actions": [{
+					"name": "finish",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "merge",
+								"destination": [
+									"master"
+								]
+							}
+						}, {
+							"sequence": 1,
+							"do": {
+								"action": "rebase",
+								"destination": [
+									"#check_branch_date"
+								]
+							}
+						}
+					]
+				}
+			]
+		}, {
+			"name": "bug",
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "create_branch",
+                                "branchNamePattern": "^BUG[0-9]+-(PJ|PP)[0-9]+",
+								"origin": "release"
+							}
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "merge",
+								"destination": [
+									"release"
+								]
+							}
+						}
+					]
+				}
+			]
+		}, {
+			"name": "fix",
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "create_branch",
+                                "branchNamePattern": "^FIX-BLOQUEV-[0-9]+",
+								"origin": "master"
+							}
+						}
+					]
+				}, {
+					"name": "release",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "merge",
+								"destination": [
+									"release"
+								]
+							}
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "merge",
+								"destination": [
+									"#check_branch_date",
+									"release",
+									"master"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
