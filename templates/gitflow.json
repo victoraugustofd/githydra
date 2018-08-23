@@ -7,16 +7,8 @@
 					"origin": "master",
 					"branches": [
 						"master",
-						"release",
-						"e1",
-						"e2",
-						"e3"
+						"develop"
 					]
-				}
-			}, {
-				"sequence": 1,
-				"do": {
-					"action": "block_commits"
 				}
 			}
 		]
@@ -29,8 +21,7 @@
 							"sequence": 0,
 							"do": {
 								"action": "create_branch",
-                                "pattern": "^(PJ|PP)[0-9]+-[A-Z]+-[0-9]+",
-								"origin": "#user_definition"
+								"origin": "develop"
 							}
 						}
 					]
@@ -41,7 +32,7 @@
 							"do": {
 								"action": "merge",
 								"destination": [
-									"#user_definition"
+									"develop"
 								]
 							}
 						}
@@ -51,21 +42,24 @@
 		}, {
 			"name": "release",
 			"actions": [{
+					"name": "start",
+					"execution": [{
+							"sequence": 0,
+							"do": {
+								"action": "create_branch",
+								"origin": "develop"
+							}
+						}
+					]
+				},{
 					"name": "finish",
 					"execution": [{
 							"sequence": 0,
 							"do": {
 								"action": "merge",
 								"destination": [
-									"master"
-								]
-							}
-						}, {
-							"sequence": 1,
-							"do": {
-								"action": "rebase",
-								"destination": [
-									"#check_branch_date"
+									"master",
+                                    "develop"
 								]
 							}
 						}
@@ -73,67 +67,26 @@
 				}
 			]
 		}, {
-			"name": "bug",
+			"name": "hotfix",
 			"actions": [{
 					"name": "start",
 					"execution": [{
 							"sequence": 0,
 							"do": {
 								"action": "create_branch",
-                                "branchNamePattern": "^BUG[0-9]+-(PJ|PP)[0-9]+",
-								"origin": "release"
-							}
-						}
-					]
-				}, {
-					"name": "finish",
-					"execution": [{
-							"sequence": 0,
-							"do": {
-								"action": "merge",
-								"destination": [
-									"release"
-								]
-							}
-						}
-					]
-				}
-			]
-		}, {
-			"name": "fix",
-			"actions": [{
-					"name": "start",
-					"execution": [{
-							"sequence": 0,
-							"do": {
-								"action": "create_branch",
-                                "branchNamePattern": "^FIX-BLOQUEV-[0-9]+",
 								"origin": "master"
 							}
 						}
 					]
 				}, {
-					"name": "release",
-					"execution": [{
-							"sequence": 0,
-							"do": {
-								"action": "merge",
-								"destination": [
-									"release"
-								]
-							}
-						}
-					]
-				}, {
 					"name": "finish",
 					"execution": [{
 							"sequence": 0,
 							"do": {
 								"action": "merge",
 								"destination": [
-									"#check_branch_date",
-									"release",
-									"master"
+									"master",
+                                    "develop"
 								]
 							}
 						}

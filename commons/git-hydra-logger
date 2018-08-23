@@ -3,7 +3,7 @@
 . bash-commons
 
 info() {
-    log ${BLUE} "INFO" "$@"
+    log ${LIGHT_BLUE} "INFO" "$@"
 }
 
 debug() {
@@ -29,5 +29,5 @@ log() {
     local level=$1; shift
     local message=$1; shift
 
-    echo -en "${color}$level:$NC $message"
+    echo -en "[${color}$level$NC] $(date +"%Y-%m-%d %H:%M:%S.%3N"): $message" >&2
 }

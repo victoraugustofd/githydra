@@ -6,35 +6,62 @@ fire_rules() {
     command=$1; shift
     action=$1; shift
     parameters=$@
+
+    info "Retrieving command parameters...\n"
+    command_parameters=$(retrieve_command_parameters $command)
+
+    info "Retrieving execution...\n"
     execution=$(retrieve_action_execution $command $action)
     local numberOfExecutions=$(count_elements $execution)
 
     for i in $(seq 1 $numberOfExecutions); do
-        local sequence=$i
-        local execution_do=$(retrieve_action_execution_do $command $action $sequence)
+        local step=$i
+        execution_do=$(retrieve_action_execution_do $command $action $step)
         local execution_do_action=$(retrieve_action_execution_do_action $execution_do)
 
-        $execution_do_action $execution_do $parameters
+        info "Retrieving action parameters...\n"
+        action_parameters=$(retrieve_action_execution_do_parameters $execution_do)
+
+        info "Executing method ${GREEN}$execution_do_action$NC...\n"
+        $execution_do_action $parameters
     done
 }
 
 create_branch() {
-    local execution_do=$1; shift
+    # Define user variables
     local name=$1; shift
-    local defined_origin=$1; shift
-    local pattern=$(jq -r '.pattern' <<< $execution_do)
-    local origin=$(jq -r '.origin' <<< $execution_do)
+    local defined_origin=$1
+
+    # Define command parameters
+    local useCommandAsPrefix=$(jq -r '.useCommandAsPrefix' <<< $command_parameters)
+
+    # Define action parameters
+    local pattern=$(jq -r '.pattern' <<< $action_parameters)
+    local origin=$(jq -r '.origin' <<< $action_parameters)
+    local restrictOrigin=$(jq -r '.restrictOrigin' <<< $action_parameters)
 
     if [[ -n $pattern && ! $name =~ $pattern ]]; then
+        warn "Use this name pattern: $pattern\n"
         error "Invalid name! Please enter a valid branch name!\n"
     else
-        local branch_name="$command/$name"
-        if [ $origin == "#user_definition" ]; then
+        local branch_name=$name
+
+        if [ $useCommandAsPrefix = true ]; then
+            branch_name=$command/$branch_name
+        fi
+
+        if [[ $origin == "#user_definition" && -z $defined_origin ]]; then
             defined_origin=$(user_definition "Inform the origin branch: ")
         fi
 
-        info "Creating a $command branch (${PURPLE}$branch_name$NC), based on ${PURPLE}$defined_origin$NC"
-        git_do "checkout -b $branch_name $defined_origin"
+        if [ -z $(retrieve_hydra_branch $restrictOrigin $defined_origin) ]; then
+            error "Invalid origin! Please inform a branch of the type ${GREEN}$restrictOrigin$NC\n"
+        fi
+
+        if [ -n $defined_origin ]; then
+            info "Creating a ${GREEN}$command$NC branch (${PURPLE}$branch_name$NC), based on ${PURPLE}$defined_origin$NC\n"
+            git_do checkout -b $branch_name $defined_origin
+        fi
     fi
 }
 
@@ -43,15 +70,97 @@ create_branches() {
 }
 
 merge() {
-    echo
+    origin=$(jq -r '.origin' <<< $execution_do)
+
+    #if [ -n $origin ]; then
+    #    origin_merge $@
+    #else
+    destination_merge $@
+    #fi
+}
+
+origin_merge() {
+    local branch_name=""
+    local defined_origin=$1
+    local origin=$(jq -r '.origin' <<< $execution_do)
+    local useCommandAsName=$(jq -r '.useCommandAsName' <<< $execution_do)
+    local restrictOrigin=$(jq -r '.restrictOrigin' <<< $execution_do)
+
+    if [ -z $useCommandAsName ]; then
+        branch_name=$command
+    fi
+
+    if [[ $origin == "#user_definition" && -z $defined_origin ]]; then
+        defined_origin=$(user_definition "Inform the origin branch: ")
+    fi
+
+    if [ -n $restrictOrigin ]; then
+        if [ -z $(retrieve_hydra_branch $restrictOrigin $defined_origin) ]; then
+            error "Invalid origin! Please inform a branch of the type ${GREEN}$restrictOrigin$NC\n"
+        fi
+    fi
+
+    info "Merging ${PURPLE}$defined_origin$NC into ${PURPLE}$branch_name$NC...\n"
+    info "Checking out ${PURPLE}$branch_name$NC...\n"
+    git_do checkout $branch_name
+    info "Updating it...\n"
+    git_do pull
+    info "Executing merge...\n"
+    git_do merge $defined_origin
+}
+
+destination_merge() {
+    # Define user variables
+    local name=$1; shift
+    local defined_destination=$1
+
+    # Define command parameters
+    local useCommandAsPrefix=$(jq -r '.useCommandAsPrefix' <<< $command_parameters)
+
+    # Define action parameters
+    local destination=$(jq -r '.destination' <<< $action_parameters)
+    local restrictDestination=$(jq -r '.restrictDestination' <<< $action_parameters)
+    local delete=$(jq -r '.delete' <<< $action_parameters)
+
+    local branch_name=$name
+
+    if [ $useCommandAsPrefix = true ]; then
+        branch_name=$command/$branch_name
+    fi
+
+    if [[ ${destination[*]} == *"#user_definition"* && -z $defined_destination ]]; then
+        defined_destination=$(user_definition "Inform the destination branch: ")
+        destination[0]=$defined_destination
+    fi
+
+    if [ -n $restrictDestination ]; then
+        if [ -z $(retrieve_hydra_branch $restrictDestination $defined_destination) ]; then
+            error "Invalid destination! Please inform a branch of the type ${GREEN}$restrictDestination$NC\n"
+        fi
+    fi
+
+    for branch in $destination; do
+        info "Merging ${PURPLE}$branch_name$NC into ${PURPLE}$branch$NC...\n"
+        info "Checking out ${PURPLE}$branch$NC...\n"
+        git_do checkout $branch
+        info "Updating it...\n"
+        git_do pull
+        info "Executing merge...\n"
+        git_do merge $branch_name
+    done
+
+    if [ $delete = true ]; then
+        info "Deleting ${GREEN}local$NC branch ${PURPLE}$branch_name$NC...\n"
+        git_do branch -D $branch_name
+    fi
 }
 
 rebase() {
-    echo
+    warn "This method is not functional yet!\n"
 }
 
 tag() {
-    echo
+    warn "This method is not functional yet!\n"
 }
 
 block_commits() {

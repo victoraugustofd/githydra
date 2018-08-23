@@ -9,6 +9,7 @@ usage() {
 }
 
 main() {
+    draw_hydra
     if is_tutorial $@; then
         usage
     else
@@ -18,15 +19,21 @@ main() {
         local parameters=$@
         local command=$1; shift
         local action=$1; shift
-        cp /d/scm/git/github/victoraugustofd/githydra/templates/hydra.json .
-        template=$(read_template "hydra.json")
+        local template_path=$(retrieve_hydra_template)
+        local template_name=$(basename $template_path)
 
-        rm hydra.json
+        cp $template_path .
+        template=$(read_template $template_name)
+        rm $template_name
 
+        info "Validating command...\n"
         validate_command $command
+        info "Validating action...\n"
         validate_action $command $action
 
+        info "Firing rules...\n"
         fire_rules $parameters
+        exec bash
     fi
 }
 

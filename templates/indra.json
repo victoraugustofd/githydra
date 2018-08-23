@@ -1,0 +1,196 @@
+{
+	"init": {
+		"execution": [{
+				"step": 1,
+				"do": {
+					"action": "create_branches",
+                    "parameters": {
+                        "origin": "master",
+    					"branches": [
+    						"master",
+    						"release",
+    						"e1",
+    						"e2",
+    						"e3"
+    					]
+                    }
+				}
+			}, {
+				"step": 2,
+				"do": {
+					"action": "block_commits"
+				}
+			}
+		]
+	},
+	"commands": [{
+			"name": "feature",
+            "parameters": {
+                "useCommandAsPrefix": true
+            },
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "create_branch",
+                                "parameters": {
+                                    "origin": "#user_definition",
+                                    "restrictOrigin": "develop",
+                                    "pattern": "^(PJ|PP)[0-9]+-[A-Z]+-[0-9]+"
+    							}
+                            }
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "merge",
+                                "parameters": {
+    								"destination": [
+    									"#user_definition"
+    								],
+                                    "restrictDestination": "develop",
+                                    "delete": true
+    							}
+                            }
+						}
+					]
+				}
+			]
+		}, {
+			"name": "release",
+            "parameters": {
+                "useCommandAsName": true
+            },
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "merge",
+                                "parameters": {
+    								"origin": "#user_definition",
+                                    "restrictOrigin": "develop"
+    							}
+                            }
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "tag",
+                                "parameters": {
+    								"destination": [
+    									"master"
+    								]
+    							}
+                            }
+						}, {
+							"step": 2,
+							"do": {
+								"action": "rebase",
+                                "parameters": {
+    								"destination": [
+    									"develop"
+    								],
+                                    "restrictDestination": "#check_branch_date"
+    							}
+                            }
+						}
+					]
+				}
+			]
+		}, {
+			"name": "bug",
+            "parameters": {
+                "useCommandAsPrefix": true
+            },
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "create_branch",
+                                "parameters": {
+                                    "branchNamePattern": "^BUG[0-9]+-(PJ|PP)[0-9]+",
+    								"origin": "release"
+    							}
+                            }
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "merge",
+                                "parameters": {
+    								"destination": [
+    									"release"
+    								],
+                                    "delete": true
+    							}
+                            }
+						}
+					]
+				}
+			]
+		}, {
+			"name": "fix",
+            "parameters": {
+                "useCommandAsPrefix": true
+            },
+			"actions": [{
+					"name": "start",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "create_branch",
+                                "parameters": {
+                                    "branchNamePattern": "^FIX-BLOQUEV-[0-9]+",
+    								"origin": "master"
+    							}
+                            }
+						}
+					]
+				}, {
+					"name": "release",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "merge",
+                                "parameters": {
+    								"destination": [
+    									"release"
+    								]
+    							}
+                            }
+						}
+					]
+				}, {
+					"name": "finish",
+					"execution": [{
+							"step": 1,
+							"do": {
+								"action": "merge",
+                                "parameters": {
+    								"destination": [
+    									"develop",
+    									"release",
+    									"master"
+    								],
+                                    "restrictDestination": "#check_branch_date"
+    							}
+                            }
+						}
+					]
+				}
+			]
+		}
+	]
+}
