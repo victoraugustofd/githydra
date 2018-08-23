@@ -1,0 +1,296 @@
+#/bin/sh
+
+. /etc/custom-commands.sh
+. /etc/functions.sh
+. /etc/gitcommons
+. git-sh-setup
+
+require_work_tree
+colors
+
+init_command="git config githydra.config.initialized"
+regex='^[0-9]+$'
+
+teste() {
+    git_create_branch "feature/teste2" "develop"
+}
+
+init() {
+    is_hydra_initialized=$($init_command)
+    hydra_header
+    echo
+
+    if [[ -z $is_hydra_initialized ||
+             $is_hydra_initialized != "true" ]]; then
+
+        printf ${LIGHT_BLUE}
+        printf "Initializing Hydra...\n\n"$NC
+        printf "Define branch names for:\n"
+
+        define_production_branch
+        define_release_branch
+        define_development_branch
+        hydra_init
+
+    else
+        printf ${LIGHT_RED}"Hydra is already initialized!\n"
+        printf ${LIGHT_RED}"Run ${LIGHT_GREEN}git hydra reinit${LIGHT_RED} to initialize it again...\n"
+    fi
+}
+
+feature() {
+    command=$1
+    origin_branch=$2
+    branch_name=$3
+
+    if [ $command = "start" ]; then
+        feature_start $origin_branch $branch_name
+    elif [ $command = "finish" ]; then
+        feature_finish $branch_name
+    else
+        printf "Invalid command!"
+    fi
+}
+
+feature_start() {
+    origin_branch=$1
+    branch_to_start=$2
+
+    branch_start "feature" $origin_branch $branch_to_start
+}
+
+feature_finish() {
+    branch_to_finish="$1"
+    destroy_current_branch="$2"
+    branch_to_merge=$(retrieve_release_branch)
+
+    branch_finish $branch_to_finish $destroy_current_branch $branch_to_merge
+}
+
+branch_start() {
+    branch_type="$1"
+    origin_branch="$2"
+    branch_to_start="$3"
+
+    printf "Creating a $branch_type branch named $branch_to_start, based on $origin_branch\n"
+    git checkout -b $branch_type/$branch_to_start $origin_branch
+}
+
+branch_finish() {
+    branch_to_finish="$1"
+    destroy_current_branch="$2"
+    branch_to_merge="$3"
+
+    git checkout $branch_to_finish
+    git merge $branch_to_merge
+}
+
+define_production_branch() {
+    branch_type="production"
+    branch_name="master"
+
+    printf "Production: ${CYAN}[$branch_name]$NC "
+    read p_branch_name
+
+    if [ -n "$p_branch_name" ]; then
+        branch_name=$p_branch_name
+    fi
+
+    define_branch $branch_type $branch_name
+}
+
+define_release_branch() {
+    branch_type="release"
+    branch_name=$branch_type
+
+    printf "Release: ${CYAN}[$branch_name]$NC "
+    read p_branch_name
+
+    if [ -n "$p_branch_name" ]; then
+        branch_name=$p_branch_name
+    fi
+
+    define_branch $branch_type $branch_name
+}
+
+define_development_branch() {
+    printf "Development:\n"
+    read -p "Will this repository have more than one development branch? (y/n) " p_confirm
+
+    if [ ${p_confirm,,} = "y" ]; then
+        define_multiple_development_branch
+    else
+        branch_type="develop"
+        branch_name=$branch_type
+
+        printf "Define branch name for Development: ${CYAN}[$branch_name]$NC "
+        read p_branch_name
+
+        if [ -n "$p_branch_name" ]; then
+            branch_name=$p_branch_name
+        fi
+
+        define_branch $branch_type $branch_name
+    fi
+}
+
+define_multiple_development_branch() {
+    coherent_number_of_dev_branches=4
+    branch_type="develop"
+
+    while [[ ! $p_number_of_dev_branches =~ $regex ||
+               "$p_number_of_dev_branches" -le 0 ]]; do
+
+        read -p "How many development branches? " p_number_of_dev_branches
+
+        if [[ $p_number_of_dev_branches =~ $regex &&
+              $p_number_of_dev_branches -gt $coherent_number_of_dev_branches ]]; then
+            read -p "Are you sure that you want to configure $p_number_of_dev_branches development branches? (y/n) " p_confirm
+
+            if [ ${p_confirm,,} != "y" ]; then
+                p_number_of_dev_branches=-1
+            fi
+        fi
+    done
+
+    printf "Define branch name for:\n"
+
+    for i in $(seq 1 $p_number_of_dev_branches); do
+        branch_name="$branch_type$i"
+
+        printf "Development Branch $i: ${CYAN}[$branch_name]$NC "
+        read p_branch_name
+
+        if [ -n "$p_branch_name" ]; then
+            branch_name=$p_branch_name
+        fi
+
+        define_branch $branch_type $branch_name $branch_type$i
+    done
+}
+
+define_branch() {
+    command="git config githydra.branch.$1"
+
+    if [ -n "$3" ]; then
+        command="$command.$3 $2"
+    else
+        command="$command $2"
+    fi
+
+    $($command)
+}
+
+hydra_init() {
+    $init_command "true"
+}
+
+destroy() {
+    if [ "$1" != "confirmed" ]; then
+        list_hydra_config
+        read -p "Are you sure that you want to destroy Hydra? (y/n) " p_confirm
+    fi
+
+    if [[ "$1" != "confirmed" || ${p_confirm,,} = "y" ]]; then
+        config_type="githydra.branch"
+        config=$(git config --get-regexp $config_type)
+
+        if [ -n "$config" ]; then
+            git config --remove-section $config_type
+        fi
+
+        config_type="githydra.branch.develop"
+        config=$(git config --get-regexp $config_type)
+
+        if [ -n "$config" ]; then
+            git config --remove-section $config_type
+        fi
+
+        config_type="githydra.config"
+        config=$(git config --get-regexp $config_type)
+
+        if [ -n "$config" ]; then
+            git config --remove-section $config_type
+        fi
+    fi
+}
+
+reinit() {
+    list_hydra_config
+    read -p "Are you sure that you want to reinit Hydra? (y/n) " p_confirm
+
+    if [ ${p_confirm,,} = "y" ]; then
+        destroy "confirmed"
+        init
+    fi
+}
+
+retrieve_production_branch() {
+    retrieve_branch "production"
+}
+
+retrieve_release_branch() {
+    retrieve_branch "release"
+}
+
+retrieve_development_branches() {
+    development_branches=$(git config --get-regexp githydra.branch.develop* | cut -d ' ' -f 2)
+
+    for branch in $development_branches; do
+        echo $branch
+    done
+}
+
+retrieve_branch() {
+    git config githydra.branch.$1
+}
+
+list_hydra_config() {
+    printf "Production branch: $(retrieve_production_branch)\n"
+    printf "Release branch: $(retrieve_release_branch)\n"
+    printf "Development branches:\n$(retrieve_development_branches)\n"
+
+    hydra_config="$(git config --get-regexp githydra.config*)"
+    #hydra_config=$("$hydra_config" cut -d '.' -f 3)
+    hydra_config=$($(tr '[:lower:]' '[:upper:]' <<< ${hydra_config:0:1})${hydra_config:1})
+
+    printf "Hydra configurations:\n$hydra_config"
+
+    printf "To view these configurations, access file .git/config"
+}
+
+config() {
+    git config githydra.config.$1 $2
+}
+
+# Main command set
+case "$1" in
+    config)
+        case "$2" in
+            --list)
+                list_hydra_config
+                ;;
+            --*)
+                #todo
+                ;;
+            *)
+                config $2 $3
+        esac
+        ;;
+    destroy)
+        destroy
+        ;;
+    feature)
+        command=$2
+        origin_branch=$3
+        branch_name=$4
+
+        feature $command $origin_branch $branch_name
+        ;;
+    init)
+        teste
+        ;;
+    reinit)
+        reinit
+        ;;
+esac
