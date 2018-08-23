@@ -1,0 +1,41 @@
+
+usage() {
+    echo "tutorial"
+}
+
+main() {
+    if is_tutorial $@; then
+        usage
+    else
+        command=$1; shift
+
+        if [[ $command =~ $(hydra_feature_command_set) ]]; then
+            check_working_tree
+            $command $@
+        else
+            invalid_command
+        fi
+    fi
+}
+
+start() {
+    local feature_name=$1; shift
+    local origin_branch=$1
+    local prefix=$(retrieve_feature_prefix)
+    local current_branch=$(retrieve_current_branch)
+
+    if is_development_branch $current_branch; then
+        branch_start $prefix $feature_name $current_branch
+    else
+        warn "Please infom the name of a development branch to start your feature: "
+        read origin_branch
+    fi
+}
+
+finish() {
+    local branch_to_finish=$1
+    local prefix=$(retrieve_feature_prefix)
+    local branch_to_merge=$(retrieve_release_branch)
+
+    branch_finish $prefix $branch_to_finish $branch_to_merge
+}
