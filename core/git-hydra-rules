@@ -2,6 +2,8 @@
 . jq-commons
 . git-hydra-commons
 
+FILE_PREFIX="git-hydra"
+
 fire_rules() {
     command=$1; shift
     action=$1; shift
@@ -17,52 +19,30 @@ fire_rules() {
     for i in $(seq 1 $numberOfExecutions); do
         local step=$i
         execution_do=$(retrieve_action_execution_do $command $action $step)
-        local execution_do_action=$(retrieve_action_execution_do_action $execution_do)
+        local action_from_json=$(retrieve_action_execution_do_action $execution_do)
+        local action_name=$(translate $action_from_json)
 
         info "Retrieving action parameters...\n"
         action_parameters=$(retrieve_action_execution_do_parameters $execution_do)
 
-        info "Executing method ${GREEN}$execution_do_action$NC...\n"
-        $execution_do_action $parameters
+        # Loading action file
+        . $FILE_PREFIX-$action_name
+
+        info "Executing method ${GREEN}$action_from_json$NC...\n"
+        main $parameters
     done
 }
 
-create_branch() {
-    # Define user variables
-    local name=$1; shift
-    local defined_origin=$1
+translate() {
+    local command=$1
 
-    # Define command parameters
-    local useCommandAsPrefix=$(jq -r '.useCommandAsPrefix' <<< $command_parameters)
-
-    # Define action parameters
-    local pattern=$(jq -r '.pattern' <<< $action_parameters)
-    local origin=$(jq -r '.origin' <<< $action_parameters)
-    local restrictOrigin=$(jq -r '.restrictOrigin' <<< $action_parameters)
-
-    if [[ -n $pattern && ! $name =~ $pattern ]]; then
-        warn "Use this name pattern: $pattern\n"
-        error "Invalid name! Please enter a valid branch name!\n"
-    else
-        local branch_name=$name
-
-        if [ $useCommandAsPrefix = true ]; then
-            branch_name=$command/$branch_name
-        fi
-
-        if [[ $origin == "#user_definition" && -z $defined_origin ]]; then
-            defined_origin=$(user_definition "Inform the origin branch: ")
-        fi
-
-        if [ -z $(retrieve_hydra_branch $restrictOrigin $defined_origin) ]; then
-            error "Invalid origin! Please inform a branch of the type ${GREEN}$restrictOrigin$NC\n"
-        fi
-
-        if [ -n $defined_origin ]; then
-            info "Creating a ${GREEN}$command$NC branch (${PURPLE}$branch_name$NC), based on ${PURPLE}$defined_origin$NC\n"
-            git_do checkout -b $branch_name $defined_origin
-        fi
-    fi
+    case $command in
+        create_branch)
+            echo "checkout"
+            ;;
+        *)
+            echo $command
+    esac
 }
 
 create_branches() {
@@ -155,20 +135,12 @@ destination_merge() {
     fi
 }
 
-rebase() {
-    warn "This method is not functional yet!\n"
-}
-
-tag() {
-    warn "This method is not functional yet!\n"
-}
-
 block_commits() {
-    echo
+    method_not_functional
 }
 
 check_branch_date() {
-    echo
+    method_not_functional
 }
 
 user_definition() {
@@ -178,4 +150,8 @@ user_definition() {
     read entry
 
     echo $entry
+}
+
+method_not_functional() {
+    warn "This method is not functional yet!\n"
 }

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Loading Hydra commons script
 . git-hydra-rules
@@ -11,15 +11,16 @@ usage() {
 main() {
     draw_hydra
     if is_tutorial $@; then
-        usage
+        retrieve_hydra_template
+        call_help "$hydra_template" "."
     else
         require_git_repo
-        require_hydra_template
+        require_template
 
         local parameters=$@
         local command=$1; shift
         local action=$1; shift
-        local template_path=$(retrieve_hydra_template)
+        local template_path=$(retrieve_template)
         local template_name=$(basename $template_path)
 
         cp $template_path .
@@ -33,7 +34,6 @@ main() {
 
         info "Firing rules...\n"
         fire_rules $parameters
-        exec bash
     fi
 }
 

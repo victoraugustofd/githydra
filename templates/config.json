@@ -1,0 +1,11 @@
+{
+    "env": "dev",
+    "dev": {
+        "projects" : {
+            "prj1": {
+                "dependencies": {},
+                "description": ""
+            }
+        }
+    }
+}

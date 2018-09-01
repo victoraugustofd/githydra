@@ -5,7 +5,19 @@
 
 CONFIG_PREFIX="githydra"
 
+retrieve_installation_path() {
+    echo "/usr/share/"
+}
+
 retrieve_hydra_template() {
+    local template_name="hydra.json"
+
+    cp $(retrieve_installation_path)"$template_name" .
+    hydra_template=$(jq . -c $template_name)
+    rm $template_name
+}
+
+retrieve_template() {
     retrieve_hydra_key "template.path"
 }
 
@@ -26,8 +38,8 @@ retrieve_hydra_key_regex() {
     git_do config --get-regexp $CONFIG_PREFIX.$key
 }
 
-require_hydra_template() {
-    if [ -z $(retrieve_hydra_template) ]; then
+require_template() {
+    if [ -z $(retrieve_template) ]; then
         error "You must specify a template to use git hydra! Run ${GREEN}git hydra config template ${PURPLE}path_to_template$NC to configure it...\n"
     fi
 }
@@ -133,6 +145,15 @@ is_command_tutorial() {
     [[ $1 = "-help" ||
        $1 = "?"     ||
        $1 = "man" ]]
+}
+
+call_help() {
+    local template=$1; shift
+    local xpath=$1"help[]"
+
+    echo -e ${GREEN}
+    jq -r --arg XPATH $xpath '($XPATH)' <<< $template
+    echo -e $NC
 }
 
 hydra_header() {

@@ -6,13 +6,13 @@
 					"action": "create_branches",
                     "parameters": {
                         "origin": "master",
-    					"branches": [
-    						"master",
-    						"release",
-    						"e1",
-    						"e2",
-    						"e3"
-    					]
+                        "branches": [
+                            "master",
+                            "release",
+                            "e1",
+                            "e2",
+                            "e3"
+                        ]
                     }
 				}
 			}, {
@@ -38,7 +38,7 @@
                                     "origin": "#user_definition",
                                     "restrictOrigin": "develop",
                                     "pattern": "^(PJ|PP)[0-9]+-[A-Z]+-[0-9]+"
-    							}
+                                }
                             }
 						}
 					]
@@ -49,12 +49,12 @@
 							"do": {
 								"action": "merge",
                                 "parameters": {
-    								"destination": [
-    									"#user_definition"
-    								],
+                                    "destination": [
+                                        "#user_definition"
+                                    ],
                                     "restrictDestination": "develop",
                                     "delete": true
-    							}
+                                }
                             }
 						}
 					]
@@ -72,9 +72,9 @@
 							"do": {
 								"action": "merge",
                                 "parameters": {
-    								"origin": "#user_definition",
+                                    "origin": "#user_definition",
                                     "restrictOrigin": "develop"
-    							}
+                                }
                             }
 						}
 					]
@@ -85,21 +85,21 @@
 							"do": {
 								"action": "tag",
                                 "parameters": {
-    								"destination": [
-    									"master"
-    								]
-    							}
+                                    "destination": [
+                                        "master"
+                                    ]
+                                }
                             }
 						}, {
 							"step": 2,
 							"do": {
 								"action": "rebase",
                                 "parameters": {
-    								"destination": [
-    									"develop"
-    								],
+                                    "destination": [
+                                        "develop"
+                                    ],
                                     "restrictDestination": "#check_branch_date"
-    							}
+                                }
                             }
 						}
 					]
@@ -118,8 +118,8 @@
 								"action": "create_branch",
                                 "parameters": {
                                     "branchNamePattern": "^BUG[0-9]+-(PJ|PP)[0-9]+",
-    								"origin": "release"
-    							}
+                                    "origin": "release"
+                                }
                             }
 						}
 					]
@@ -130,11 +130,11 @@
 							"do": {
 								"action": "merge",
                                 "parameters": {
-    								"destination": [
-    									"release"
-    								],
+                                    "destination": [
+                                        "release"
+                                    ],
                                     "delete": true
-    							}
+                                }
                             }
 						}
 					]
@@ -153,8 +153,8 @@
 								"action": "create_branch",
                                 "parameters": {
                                     "branchNamePattern": "^FIX-BLOQUEV-[0-9]+",
-    								"origin": "master"
-    							}
+                                    "origin": "master"
+                                }
                             }
 						}
 					]
@@ -165,10 +165,10 @@
 							"do": {
 								"action": "merge",
                                 "parameters": {
-    								"destination": [
-    									"release"
-    								]
-    							}
+                                    "destination": [
+                                        "release"
+                                    ]
+                                }
                             }
 						}
 					]
@@ -179,13 +179,13 @@
 							"do": {
 								"action": "merge",
                                 "parameters": {
-    								"destination": [
-    									"develop",
-    									"release",
-    									"master"
-    								],
+                                    "destination": [
+                                        "develop",
+                                        "release",
+                                        "master"
+                                    ],
                                     "restrictDestination": "#check_branch_date"
-    							}
+                                }
                             }
 						}
 					]

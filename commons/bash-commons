@@ -26,7 +26,7 @@ retrieve_current_dir() {
 replace() {
     parameter=$1; shift
     old_pattern=$1; shift
-    new_pattern=$1; shift
+    new_pattern=$1
 
     echo "${parameter//$old_pattern/$new_pattern}"
 }
