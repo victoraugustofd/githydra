@@ -9,7 +9,10 @@ usage() {
 }
 
 main() {
-    draw_hydra
+    if ( $GH_DRAW_HYDRA ); then
+        draw_hydra
+    fi
+
     if is_tutorial $@; then
         retrieve_hydra_template
         call_help "$hydra_template" "."

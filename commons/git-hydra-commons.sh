@@ -3,7 +3,19 @@
 . git-commons
 . git-hydra-logger
 
-CONFIG_PREFIX="githydra"
+# Define Git Hydra Global variables
+
+# Log variables
+GH_IS_LOG_INFO_ENABLED=true
+GH_IS_LOG_DEBUG_ENABLED=true
+GH_IS_LOG_WARN_ENABLED=true
+GH_IS_LOG_ERROR_ENABLED=true
+GH_IS_LOG_FATAL_ENABLED=true
+GH_IS_LOG_ENABLED=true
+
+# Other variables
+GH_CONFIG_PREFIX="githydra"
+GH_DRAW_HYDRA=true
 
 retrieve_installation_path() {
     echo "/usr/share/"
@@ -30,12 +42,12 @@ retrieve_hydra_branch() {
 
 retrieve_hydra_key() {
     local key=$1
-    git_do config --get $CONFIG_PREFIX.$key
+    git_do config --get $GH_CONFIG_PREFIX.$key
 }
 
 retrieve_hydra_key_regex() {
     local key=$1
-    git_do config --get-regexp $CONFIG_PREFIX.$key
+    git_do config --get-regexp $GH_CONFIG_PREFIX.$key
 }
 
 require_template() {
